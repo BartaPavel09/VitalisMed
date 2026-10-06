@@ -5,6 +5,16 @@ from sqlalchemy.sql import func
 from app.core.database import Base
 
 
+class DayOfWeek(str, enum.Enum):
+    MONDAY = "monday"
+    TUESDAY = "tuesday"
+    WEDNESDAY = "wednesday"
+    THURSDAY = "thursday"
+    FRIDAY = "friday"
+    SATURDAY = "saturday"
+    SUNDAY = "sunday"
+
+
 class VacationStatus(str, enum.Enum):
     PENDING = "pending"
     APPROVED = "approved"
@@ -16,7 +26,7 @@ class DoctorShift(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     doctor_id = Column(Integer, ForeignKey("doctors.id", ondelete="CASCADE"), nullable=False)
-    day_of_week = Column(Integer, nullable=False)
+    day_of_week = Column(Enum(DayOfWeek), nullable=False)
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
 
