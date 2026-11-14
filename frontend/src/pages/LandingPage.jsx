@@ -20,10 +20,10 @@ export default function LandingPage() {
               <Activity className="h-3.5 w-3.5" /> Modern Medical Management
             </span>
             <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-              Intelligent Healthcare with <span className="text-blue-600">AI Triage</span> & Prescription OCR
+              Intelligent Healthcare with <span className="text-blue-600">AI </span>
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-slate-600">
-              VitalisMed bridges advanced Natural Language Processing for automated patient symptom triage with comparative OCR handwriting digitization for seamless clinical prescriptions.
+              VitalisMed makes healthcare feel effortless. From figuring out what hurts to deciphering doctor handwriting and booking visits without the headache, we’ve got your back.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               {user ? (
@@ -62,9 +62,9 @@ export default function LandingPage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                 <Brain className="h-6 w-6" />
               </div>
-              <h3 className="mt-6 text-xl font-bold text-slate-900">NLP Symptom Triage</h3>
+              <h3 className="mt-6 text-xl font-bold text-slate-900">Smart Symptom Checker</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                Patients describe symptoms naturally. Our neural model identifies the medical specialty and urgency level instantly.
+                Just tell us what’s bugging you in your own words. We’ll help pinpoint what kind of specialist you need and how urgently you should be seen-in seconds.
               </p>
             </div>
 
@@ -72,9 +72,9 @@ export default function LandingPage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                 <FileText className="h-6 w-6" />
               </div>
-              <h3 className="mt-6 text-xl font-bold text-slate-900">Comparative Prescription OCR</h3>
+              <h3 className="mt-6 text-xl font-bold text-slate-900">Doctor Handwriting? Solved.</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                Digitize handwritten prescriptions with automated watermarking and benchmark EasyOCR, Tesseract, and PaddleOCR accuracy.
+                Can’t read your doctor's scribbles? Snap a photo of your paper prescription and we’ll turn it into crystal-clear digital notes, backed by top-tier scan accuracy.
               </p>
             </div>
 
@@ -82,9 +82,9 @@ export default function LandingPage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
                 <CalendarCheck className="h-6 w-6" />
               </div>
-              <h3 className="mt-6 text-xl font-bold text-slate-900">Clinical Scheduling & Auditing</h3>
+              <h3 className="mt-6 text-xl font-bold text-slate-900">Stress-Free Booking</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                Manage doctor shifts, vacation requests, and enforce a strict 24-hour advance appointment cancellation policy.
+                Schedule or reschedule your visits with zero hassle. Doctors stay organized, and you get clear reminders just give us a 24 hour heads-up if plans change!
               </p>
             </div>
           </div>
