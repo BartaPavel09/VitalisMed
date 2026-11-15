@@ -6,6 +6,7 @@ import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import Dashboard from './pages/Dashboard'
+import ManageDoctors from './pages/admin/ManageDoctors'
 
 /**
  * Root application component connecting global contexts and routing.
@@ -28,6 +29,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/doctors"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <ManageDoctors />
                   </ProtectedRoute>
                 }
               />

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Calendar, Users, Stethoscope, FileText, Brain, Shield, Clock, Star } from 'lucide-react'
 
@@ -144,9 +145,12 @@ export default function Dashboard() {
                 </div>
                 <h3 className="mt-4 font-bold text-slate-900">Doctor Directory</h3>
                 <p className="mt-1 text-sm text-slate-500">Add, edit, or deactivate doctor profiles and licenses.</p>
-                <button className="mt-4 rounded-xl bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-purple-700">
+                <Link
+                  to="/admin/doctors"
+                  className="mt-4 inline-block rounded-xl bg-purple-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-purple-700"
+                >
                   Manage Doctors
-                </button>
+                </Link>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
