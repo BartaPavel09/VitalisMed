@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Plus, UserCheck, UserX, Stethoscope, Mail, Phone, Award, Clock, Trash2, X } from 'lucide-react'
+import { Plus, UserCheck, UserX, Stethoscope, Mail, Phone, Clock, Trash2, X, Edit3, AlertCircle } from 'lucide-react'
 import client from '../../api/client'
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 /**
- * Admin portal view for managing clinic doctors, specialties, and weekly shifts.
+ * Admin portal view for managing clinic doctors, specialties, licenses, and weekly shifts.
  *
  * @return {JSX.Element} Doctor management interface.
  */
@@ -14,14 +14,24 @@ export default function ManageDoctors() {
   const [specialties, setSpecialties] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [showModal, setShowModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingDoctor, setEditingDoctor] = useState(null)
   const [selectedDoctorForShifts, setSelectedDoctorForShifts] = useState(null)
   const [shifts, setShifts] = useState([])
+  const [shiftError, setShiftError] = useState('')
 
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
+    phone: '',
+    specialtyId: '',
+    licenseNumber: '',
+    bio: ''
+  })
+
+  const [editFormData, setEditFormData] = useState({
+    fullName: '',
     phone: '',
     specialtyId: '',
     licenseNumber: '',
@@ -68,7 +78,7 @@ export default function ManageDoctors() {
         license_number: formData.licenseNumber,
         bio: formData.bio || null
       })
-      setShowModal(false)
+      setShowAddModal(false)
       setFormData({
         fullName: '',
         email: '',
@@ -84,6 +94,35 @@ export default function ManageDoctors() {
     }
   }
 
+  const openEditModal = (doc) => {
+    setEditingDoctor(doc)
+    setEditFormData({
+      fullName: doc.full_name,
+      phone: doc.phone_number || '',
+      specialtyId: doc.specialty_id || '',
+      licenseNumber: doc.license_number,
+      bio: doc.bio || ''
+    })
+  }
+
+  const handleUpdateDoctor = async (e) => {
+    e.preventDefault()
+    setError('')
+    try {
+      await client.put(`/admin/doctors/${editingDoctor.id}`, {
+        full_name: editFormData.fullName,
+        phone_number: editFormData.phone || null,
+        specialty_id: editFormData.specialtyId ? parseInt(editFormData.specialtyId, 10) : null,
+        license_number: editFormData.licenseNumber,
+        bio: editFormData.bio || null
+      })
+      setEditingDoctor(null)
+      fetchData()
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to update doctor details.')
+    }
+  }
+
   const handleToggleStatus = async (doctorId) => {
     try {
       await client.patch(`/admin/doctors/${doctorId}/status`)
@@ -95,6 +134,7 @@ export default function ManageDoctors() {
 
   const openShiftsModal = async (doctor) => {
     setSelectedDoctorForShifts(doctor)
+    setShiftError('')
     try {
       const res = await client.get(`/admin/doctors/${doctor.id}/shifts`)
       setShifts(res.data)
@@ -105,6 +145,7 @@ export default function ManageDoctors() {
 
   const handleAddShift = async (e) => {
     e.preventDefault()
+    setShiftError('')
     try {
       await client.post('/admin/shifts', {
         doctor_id: selectedDoctorForShifts.id,
@@ -115,16 +156,17 @@ export default function ManageDoctors() {
       const res = await client.get(`/admin/doctors/${selectedDoctorForShifts.id}/shifts`)
       setShifts(res.data)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to add shift.')
+      setShiftError(err.response?.data?.detail || 'Failed to add shift schedule.')
     }
   }
 
   const handleDeleteShift = async (shiftId) => {
+    setShiftError('')
     try {
       await client.delete(`/admin/shifts/${shiftId}`)
       setShifts(shifts.filter((s) => s.id !== shiftId))
     } catch {
-      setError('Failed to remove shift.')
+      setShiftError('Failed to remove shift.')
     }
   }
 
@@ -137,11 +179,11 @@ export default function ManageDoctors() {
               Doctor Management
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Register medical specialists, manage license credentials, and schedule weekly shifts.
+              Register medical specialists, maintain active practice credentials, and schedule hospital shifts.
             </p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => setShowAddModal(true)}
             className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
@@ -166,7 +208,7 @@ export default function ManageDoctors() {
                 <tr>
                   <th className="px-6 py-4">Doctor</th>
                   <th className="px-6 py-4">Specialty</th>
-                  <th className="px-6 py-4">License Number</th>
+                  <th className="px-6 py-4">Medical License</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -213,6 +255,13 @@ export default function ManageDoctors() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
+                            onClick={() => openEditModal(doc)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
+                          >
+                            <Edit3 className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
+                          <button
                             onClick={() => openShiftsModal(doc)}
                             className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
                           >
@@ -248,13 +297,13 @@ export default function ManageDoctors() {
         )}
 
         {/* Modal: Add Doctor */}
-        {showModal && (
+        {showAddModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
             <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <h3 className="text-lg font-bold text-slate-900">Enroll Medical Specialist</h3>
                 <button
-                  onClick={() => setShowModal(false)}
+                  onClick={() => setShowAddModal(false)}
                   className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                 >
                   <X className="h-5 w-5" />
@@ -317,7 +366,7 @@ export default function ManageDoctors() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">License / Stamp #</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Medical License / Parafă #</label>
                     <input
                       type="text"
                       required
@@ -341,12 +390,12 @@ export default function ManageDoctors() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Biography / Expertise</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Biography / Credentials</label>
                   <textarea
                     rows="2"
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    placeholder="Specialist credentials, sub-specializations, and research focus..."
+                    placeholder="Clinical qualifications, residency history, subspecialty areas..."
                     className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
                   ></textarea>
                 </div>
@@ -354,7 +403,7 @@ export default function ManageDoctors() {
                 <div className="flex justify-end gap-2 pt-2">
                   <button
                     type="button"
-                    onClick={() => setShowModal(false)}
+                    onClick={() => setShowAddModal(false)}
                     className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                   >
                     Cancel
@@ -371,7 +420,105 @@ export default function ManageDoctors() {
           </div>
         )}
 
-        {/* Modal: Weekly Shifts */}
+        {/* Modal: Edit Doctor Credentials & Specialty */}
+        {editingDoctor && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Edit Doctor Profile & License</h3>
+                  <p className="text-xs text-slate-500">{editingDoctor.email}</p>
+                </div>
+                <button
+                  onClick={() => setEditingDoctor(null)}
+                  className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateDoctor} className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.fullName}
+                    onChange={(e) => setEditFormData({ ...editFormData, fullName: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Specialty</label>
+                    <select
+                      required
+                      value={editFormData.specialtyId}
+                      onChange={(e) => setEditFormData({ ...editFormData, specialtyId: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none bg-white"
+                    >
+                      <option value="">Select Specialty</option>
+                      {specialties.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Medical License / Parafă #</label>
+                    <input
+                      type="text"
+                      required
+                      value={editFormData.licenseNumber}
+                      onChange={(e) => setEditFormData({ ...editFormData, licenseNumber: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={editFormData.phone}
+                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Biography / Credentials</label>
+                  <textarea
+                    rows="2"
+                    value={editFormData.bio}
+                    onChange={(e) => setEditFormData({ ...editFormData, bio: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
+                  ></textarea>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingDoctor(null)}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm shadow-blue-500/20"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Weekly Shifts with Labor Code Rest Rules */}
         {selectedDoctorForShifts && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
             <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
@@ -380,7 +527,7 @@ export default function ManageDoctors() {
                   <h3 className="text-lg font-bold text-slate-900">
                     Weekly Shifts: {selectedDoctorForShifts.full_name}
                   </h3>
-                  <p className="text-xs text-slate-500">{selectedDoctorForShifts.specialty_name}</p>
+                  <p className="text-xs text-slate-500">{selectedDoctorForShifts.specialty_name} • Enforcing 12h rest rules</p>
                 </div>
                 <button
                   onClick={() => setSelectedDoctorForShifts(null)}
@@ -389,6 +536,13 @@ export default function ManageDoctors() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
+
+              {shiftError && (
+                <div className="mt-4 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>{shiftError}</span>
+                </div>
+              )}
 
               {/* Form to add a shift */}
               <form onSubmit={handleAddShift} className="mt-4 flex flex-wrap items-end gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">

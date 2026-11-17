@@ -26,6 +26,14 @@ class DoctorCreate(BaseModel):
     bio: str | None = None
 
 
+class DoctorUpdate(BaseModel):
+    full_name: str | None = None
+    phone_number: str | None = None
+    specialty_id: int | None = None
+    license_number: str | None = None
+    bio: str | None = None
+
+
 class DoctorResponse(BaseModel):
     id: int
     user_id: int

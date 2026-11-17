@@ -6,7 +6,11 @@ import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import Dashboard from './pages/Dashboard'
+import AdminDashboard from './pages/admin/AdminDashboard'
 import ManageDoctors from './pages/admin/ManageDoctors'
+import VacationApprovals from './pages/admin/VacationApprovals'
+import DoctorDashboard from './pages/doctor/DoctorDashboard'
+import DoctorAppointments from './pages/doctor/DoctorAppointments'
 
 /**
  * Root application component connecting global contexts and routing.
@@ -33,10 +37,42 @@ function App() {
                 }
               />
               <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/doctors"
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
                     <ManageDoctors />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/vacations"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <VacationApprovals />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/doctor/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['doctor']}>
+                    <DoctorDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/doctor/appointments"
+                element={
+                  <ProtectedRoute allowedRoles={['doctor']}>
+                    <DoctorAppointments />
                   </ProtectedRoute>
                 }
               />
