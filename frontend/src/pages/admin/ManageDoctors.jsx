@@ -217,7 +217,7 @@ export default function ManageDoctors() {
                 {doctors.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="px-6 py-12 text-center text-slate-500">
-                      No doctors registered yet. Click &quot;Add New Doctor&quot; to enroll your first practitioner.
+                      No doctors registered yet. Click &quot;Add New Doctor&quot; to enroll your first doctor.
                     </td>
                   </tr>
                 ) : (

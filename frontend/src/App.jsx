@@ -11,6 +11,8 @@ import ManageDoctors from './pages/admin/ManageDoctors'
 import VacationApprovals from './pages/admin/VacationApprovals'
 import DoctorDashboard from './pages/doctor/DoctorDashboard'
 import DoctorAppointments from './pages/doctor/DoctorAppointments'
+import PatientDashboard from './pages/patient/PatientDashboard'
+import BookAppointment from './pages/patient/BookAppointment'
 
 /**
  * Root application component connecting global contexts and routing.
@@ -73,6 +75,22 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['doctor']}>
                     <DoctorAppointments />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['patient']}>
+                    <PatientDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patient/book"
+                element={
+                  <ProtectedRoute allowedRoles={['patient']}>
+                    <BookAppointment />
                   </ProtectedRoute>
                 }
               />

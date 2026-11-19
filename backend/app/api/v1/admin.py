@@ -287,11 +287,7 @@ def _time_to_minutes(t: time) -> int:
 @router.post("/shifts", response_model=ShiftResponse, status_code=status.HTTP_201_CREATED)
 def create_shift(shift_in: ShiftCreate, db: Session = Depends(get_db)) -> DoctorShift:
     """
-    Assign a weekly shift interval to a doctor enforcing Romanian labor & hospital rest norms:
-    1. Start time must precede end time.
-    2. No overlapping shifts on the same day.
-    3. Minimum 12 consecutive hours of rest between consecutive days.
-    4. Extended 24h duty requires full rest on the following day.
+    Assign a weekly shift interval to a doctor enforcing daily rest periods and scheduling constraints.
 
     @param shift_in: Shift payload containing doctor_id, day, and time interval.
     @param db: Database session dependency.
@@ -327,7 +323,6 @@ def create_shift(shift_in: ShiftCreate, db: Session = Depends(get_db)) -> Doctor
         s_end_min = _time_to_minutes(s.end_time)
         s_duration_hours = (s_end_min - s_start_min) / 60.0
 
-        # Rule 1: Same-day overlap
         if s_day_idx == new_day_idx:
             if not (new_end_min <= s_start_min or new_start_min >= s_end_min):
                 raise HTTPException(
@@ -335,25 +330,21 @@ def create_shift(shift_in: ShiftCreate, db: Session = Depends(get_db)) -> Doctor
                     detail=f"Shift overlaps with an existing shift on {shift_in.day_of_week.value.capitalize()} ({s.start_time.strftime('%H:%M')} - {s.end_time.strftime('%H:%M')})"
                 )
 
-        # Rule 2: Minimum 12h rest if preceding day exists (s is day before new shift)
         if (s_day_idx + 1) % 7 == new_day_idx:
-            # Check 24h shift compensatory rest
             if s_duration_hours >= 20.0:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Mandatory 24h compensatory rest required following extended duty on {s.day_of_week.value.capitalize()}"
                 )
 
-            # Rest = (24 * 60 - s_end_min) + new_start_min
             rest_minutes = (1440 - s_end_min) + new_start_min
-            if rest_minutes < 720:  # 12 hours
+            if rest_minutes < 720:
                 rest_hours = round(rest_minutes / 60.0, 1)
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Insufficient daily rest period ({rest_hours}h). Clinical labor norms require at least 12 consecutive hours between shifts on {s.day_of_week.value.capitalize()} and {shift_in.day_of_week.value.capitalize()}"
                 )
 
-        # Rule 3: Minimum 12h rest if succeeding day exists (new shift is day before s)
         if (new_day_idx + 1) % 7 == s_day_idx:
             if shift_duration_hours >= 20.0:
                 raise HTTPException(
@@ -362,7 +353,7 @@ def create_shift(shift_in: ShiftCreate, db: Session = Depends(get_db)) -> Doctor
                 )
 
             rest_minutes = (1440 - new_end_min) + s_start_min
-            if rest_minutes < 720:  # 12 hours
+            if rest_minutes < 720:
                 rest_hours = round(rest_minutes / 60.0, 1)
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
