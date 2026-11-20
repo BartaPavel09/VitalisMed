@@ -32,7 +32,7 @@ export default function BookAppointment() {
     setError('')
     try {
       const [specRes, docRes] = await Promise.all([
-        client.get('/admin/specialties'),
+        client.get('/patient/specialties'),
         client.get(specId ? `/patient/doctors?specialty_id=${specId}` : '/patient/doctors')
       ])
       setSpecialties(specRes.data)

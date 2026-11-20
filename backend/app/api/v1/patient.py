@@ -7,6 +7,7 @@ from app.models.user import User, UserRole
 from app.models.doctor import Doctor, Specialty
 from app.models.shift import DoctorShift, VacationRequest, VacationStatus, DayOfWeek
 from app.models.appointment import Appointment, AppointmentStatus
+from app.schemas.admin import SpecialtyResponse
 from app.schemas.patient import (
     PublicDoctorInfo,
     AppointmentCreate,
@@ -24,6 +25,17 @@ WEEKDAY_MAP = {
     5: DayOfWeek.SATURDAY,
     6: DayOfWeek.SUNDAY
 }
+
+
+@router.get("/specialties", response_model=list[SpecialtyResponse])
+def get_patient_specialties(db: Session = Depends(get_db)) -> list[Specialty]:
+    """
+    Retrieve clinical specialties available for appointment booking.
+
+    @param db: Database session dependency.
+    @return: List of medical specialties.
+    """
+    return db.query(Specialty).all()
 
 
 @router.get("/doctors", response_model=list[PublicDoctorInfo])
