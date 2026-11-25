@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Plus, UserCheck, UserX, Stethoscope, Mail, Phone, Clock, Trash2, X, Edit3, AlertCircle } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, UserCheck, UserX, Stethoscope, Mail, Phone, Clock, Trash2, X, Edit3, AlertCircle, ChevronDown } from 'lucide-react'
 import client from '../../api/client'
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -11,6 +11,68 @@ const HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, index) => {
 })
 
 const sanitizePhoneInput = (value) => value.replace(/[^0-9+\-\s()]/g, '')
+
+/**
+ * Compact 24-hour 30-minute interval time picker popover.
+ *
+ * @param {object} props Component props.
+ * @param {string} props.value Selected time in HH:MM format.
+ * @param {function} props.onChange Callback invoked with selected HH:MM string.
+ * @return {JSX.Element} Compact time picker button and popover.
+ */
+function CompactTimePicker({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono text-slate-800 hover:border-blue-500 focus:border-blue-600 focus:outline-none"
+      >
+        <span>{value}</span>
+        <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 z-50 mt-1.5 w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+          <div className="grid max-h-52 grid-cols-4 gap-1 overflow-y-auto">
+            {HALF_HOUR_OPTIONS.map((slot) => (
+              <button
+                key={slot}
+                type="button"
+                onClick={() => {
+                  onChange(slot)
+                  setOpen(false)
+                }}
+                className={`rounded-lg py-1.5 text-xs font-mono transition ${
+                  slot === value
+                    ? 'bg-blue-600 font-semibold text-white'
+                    : 'text-slate-700 hover:bg-blue-50 hover:text-blue-700'
+                }`}
+              >
+                {slot}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 /**
  * Admin portal view for managing clinic doctors, specialties, licenses, and weekly shifts.
@@ -562,7 +624,7 @@ export default function ManageDoctors() {
                   <h3 className="text-lg font-bold text-slate-900">
                     Weekly Shifts: {selectedDoctorForShifts.full_name}
                   </h3>
-                  <p className="text-xs text-slate-500">{selectedDoctorForShifts.specialty_name} • Enforcing 12h rest rules</p>
+                  <p className="text-xs text-slate-500">{selectedDoctorForShifts.specialty_name}</p>
                 </div>
                 <button
                   onClick={() => setSelectedDoctorForShifts(null)}
@@ -583,54 +645,41 @@ export default function ManageDoctors() {
               <form onSubmit={handleAddShift} className="mt-4 flex flex-wrap items-end gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
                 <div className="flex-1 min-w-[130px]">
                   <label className="block text-xs font-medium text-slate-700 mb-1">Day</label>
-                  <select
-                    value={shiftForm.dayOfWeek}
-                    onChange={(e) => setShiftForm({ ...shiftForm, dayOfWeek: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs bg-white capitalize"
-                  >
-                    {DAYS.map((d) => (
-                      <option key={d} value={d} className="capitalize">
-                        {d}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={shiftForm.dayOfWeek}
+                      onChange={(e) => setShiftForm({ ...shiftForm, dayOfWeek: e.target.value })}
+                      className="w-full appearance-none rounded-lg border border-slate-200 px-2.5 py-2 pr-8 text-xs bg-white capitalize focus:border-blue-600 focus:outline-none"
+                    >
+                      {DAYS.map((d) => (
+                        <option key={d} value={d} className="capitalize">
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
 
                 <div className="w-28">
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Start Time (24h)</label>
-                  <select
-                    required
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Start Time</label>
+                  <CompactTimePicker
                     value={shiftForm.startTime}
-                    onChange={(e) => setShiftForm({ ...shiftForm, startTime: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs bg-white font-mono"
-                  >
-                    {HALF_HOUR_OPTIONS.map((slot) => (
-                      <option key={slot} value={slot}>
-                        {slot}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setShiftForm({ ...shiftForm, startTime: val })}
+                  />
                 </div>
 
                 <div className="w-28">
-                  <label className="block text-xs font-medium text-slate-700 mb-1">End Time (24h)</label>
-                  <select
-                    required
+                  <label className="block text-xs font-medium text-slate-700 mb-1">End Time</label>
+                  <CompactTimePicker
                     value={shiftForm.endTime}
-                    onChange={(e) => setShiftForm({ ...shiftForm, endTime: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs bg-white font-mono"
-                  >
-                    {HALF_HOUR_OPTIONS.map((slot) => (
-                      <option key={slot} value={slot}>
-                        {slot}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setShiftForm({ ...shiftForm, endTime: val })}
+                  />
                 </div>
 
                 <button
                   type="submit"
-                  className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition"
+                  className="rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition"
                 >
                   Add Shift
                 </button>

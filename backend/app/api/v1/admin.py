@@ -68,6 +68,33 @@ def create_specialty(specialty_in: SpecialtyCreate, db: Session = Depends(get_db
     return specialty
 
 
+@router.delete("/specialties/{specialty_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_specialty(specialty_id: int, db: Session = Depends(get_db)) -> None:
+    """
+    Delete a medical specialty if no doctors are currently assigned to it.
+
+    @param specialty_id: Target Specialty identifier.
+    @param db: Database session dependency.
+    @return: None
+    """
+    specialty = db.query(Specialty).filter(Specialty.id == specialty_id).first()
+    if not specialty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Specialty not found"
+        )
+
+    assigned_doctor = db.query(Doctor).filter(Doctor.specialty_id == specialty_id).first()
+    if assigned_doctor:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete a specialty that has assigned doctors"
+        )
+
+    db.delete(specialty)
+    db.commit()
+
+
 @router.get("/doctors", response_model=list[DoctorResponse])
 def get_doctors(db: Session = Depends(get_db)) -> list[dict]:
     """
@@ -331,34 +358,40 @@ def create_shift(shift_in: ShiftCreate, db: Session = Depends(get_db)) -> Doctor
                 )
 
         if (s_day_idx + 1) % 7 == new_day_idx:
-            if s_duration_hours >= 20.0:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Mandatory 24h compensatory rest required following extended duty on {s.day_of_week.value.capitalize()}"
-                )
-
-            rest_minutes = (1440 - s_end_min) + new_start_min
-            if rest_minutes < 720:
-                rest_hours = round(rest_minutes / 60.0, 1)
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Insufficient daily rest period ({rest_hours}h). Clinical labor norms require at least 12 consecutive hours between shifts on {s.day_of_week.value.capitalize()} and {shift_in.day_of_week.value.capitalize()}"
-                )
+            if s_duration_hours >= 12.0:
+                rest_minutes = (1440 - s_end_min) + new_start_min
+                if rest_minutes < 1440:
+                    rest_hours = round(rest_minutes / 60.0, 1)
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Insufficient rest period ({rest_hours}h). Clinical labor norms require at least 24 consecutive hours of rest following a shift of 12 hours or more."
+                    )
+            else:
+                rest_minutes = (1440 - s_end_min) + new_start_min
+                if rest_minutes < 720:
+                    rest_hours = round(rest_minutes / 60.0, 1)
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Insufficient daily rest period ({rest_hours}h). Clinical labor norms require at least 12 consecutive hours of rest between shifts."
+                    )
 
         if (new_day_idx + 1) % 7 == s_day_idx:
-            if shift_duration_hours >= 20.0:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Cannot schedule an extended shift prior to existing shift on {s.day_of_week.value.capitalize()}; 24h rest required"
-                )
-
-            rest_minutes = (1440 - new_end_min) + s_start_min
-            if rest_minutes < 720:
-                rest_hours = round(rest_minutes / 60.0, 1)
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Insufficient daily rest period ({rest_hours}h). Shift ends too late to grant required 12h rest before scheduled shift on {s.day_of_week.value.capitalize()}"
-                )
+            if shift_duration_hours >= 12.0:
+                rest_minutes = (1440 - new_end_min) + s_start_min
+                if rest_minutes < 1440:
+                    rest_hours = round(rest_minutes / 60.0, 1)
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Insufficient rest period ({rest_hours}h). Clinical labor norms require at least 24 consecutive hours of rest following a shift of 12 hours or more."
+                    )
+            else:
+                rest_minutes = (1440 - new_end_min) + s_start_min
+                if rest_minutes < 720:
+                    rest_hours = round(rest_minutes / 60.0, 1)
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Insufficient daily rest period ({rest_hours}h). Clinical labor norms require at least 12 consecutive hours of rest between shifts."
+                    )
 
     shift = DoctorShift(
         doctor_id=shift_in.doctor_id,

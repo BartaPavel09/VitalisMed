@@ -58,13 +58,13 @@ export default function AdminDashboard() {
             </div>
             <h3 className="mt-4 font-bold text-slate-900">Clinical Specialties</h3>
             <p className="mt-1 text-sm text-slate-500">
-              View registered medical departments and active clinical classifications.
+              Create and manage medical specialties available across the clinic.
             </p>
             <Link
-              to="/admin/doctors"
+              to="/admin/specialties"
               className="mt-4 inline-block rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
             >
-              View Specialties
+              Manage Specialties
             </Link>
           </div>
         </div>

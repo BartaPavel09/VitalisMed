@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Activity, Brain, FileText, CalendarCheck, ShieldCheck } from 'lucide-react'
+import { Brain, FileText, CalendarCheck } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 /**
@@ -13,13 +13,10 @@ export default function LandingPage() {
   return (
     <div className="bg-slate-50">
       {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-slate-200 bg-white py-20 lg:py-28">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-white py-14 lg:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-              <Activity className="h-3.5 w-3.5" /> Modern Medical Management
-            </span>
-            <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
               Intelligent Healthcare with <span className="text-blue-600">AI </span>
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-slate-600">
@@ -55,7 +52,7 @@ export default function LandingPage() {
       </section>
 
       {/* Feature Grid */}
-      <section className="py-16 lg:py-24">
+      <section className="py-10 lg:py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-8 md:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:shadow-md">

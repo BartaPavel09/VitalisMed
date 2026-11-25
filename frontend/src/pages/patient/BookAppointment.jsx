@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Clock, Stethoscope, AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { Calendar, Clock, Stethoscope, AlertCircle, ArrowLeft, CheckCircle2, ChevronDown } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import client from '../../api/client'
 
@@ -188,18 +188,21 @@ export default function BookAppointment() {
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
                 1. Select Medical Specialty
               </label>
-              <select
-                value={selectedSpecialty}
-                onChange={handleSpecialtyChange}
-                className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-white focus:border-blue-600 focus:outline-none"
-              >
-                <option value="">All Clinical Specialties</option>
-                {specialties.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={selectedSpecialty}
+                  onChange={handleSpecialtyChange}
+                  className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-10 text-sm text-slate-800 focus:border-blue-600 focus:outline-none"
+                >
+                  <option value="">All Clinical Specialties</option>
+                  {specialties.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              </div>
             </div>
 
             <div>
@@ -209,22 +212,30 @@ export default function BookAppointment() {
               {loading ? (
                 <div className="py-4 text-center text-xs text-slate-400">Loading doctors...</div>
               ) : (
-                <select
-                  required
-                  value={selectedDoctorId}
-                  onChange={(e) => {
-                    setSelectedDoctorId(e.target.value)
-                    setAppointmentTime('')
-                  }}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-white focus:border-blue-600 focus:outline-none"
-                >
-                  <option value="">Select Doctor</option>
-                  {doctors.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.full_name} ({d.specialty_name})
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    required
+                    value={selectedDoctorId}
+                    onChange={(e) => {
+                      const docId = e.target.value
+                      setSelectedDoctorId(docId)
+                      setAppointmentTime('')
+                      const doc = doctors.find((d) => d.id === parseInt(docId, 10))
+                      if (doc && doc.specialty_id) {
+                        setSelectedSpecialty(String(doc.specialty_id))
+                      }
+                    }}
+                    className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-10 text-sm text-slate-800 focus:border-blue-600 focus:outline-none"
+                  >
+                    <option value="">Select Doctor</option>
+                    {doctors.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.full_name} ({d.specialty_name})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                </div>
               )}
             </div>
 
