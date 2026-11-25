@@ -4,6 +4,14 @@ import client from '../../api/client'
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
+const HALF_HOUR_OPTIONS = Array.from({ length: 48 }, (_, index) => {
+  const hours = String(Math.floor(index / 2)).padStart(2, '0')
+  const minutes = index % 2 === 0 ? '00' : '30'
+  return `${hours}:${minutes}`
+})
+
+const sanitizePhoneInput = (value) => value.replace(/[^0-9+\-\s()]/g, '')
+
 /**
  * Admin portal view for managing clinic doctors, specialties, licenses, and weekly shifts.
  *
@@ -19,6 +27,7 @@ export default function ManageDoctors() {
   const [selectedDoctorForShifts, setSelectedDoctorForShifts] = useState(null)
   const [shifts, setShifts] = useState([])
   const [shiftError, setShiftError] = useState('')
+  const [modalError, setModalError] = useState('')
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -68,6 +77,7 @@ export default function ManageDoctors() {
   const handleCreateDoctor = async (e) => {
     e.preventDefault()
     setError('')
+    setModalError('')
     try {
       await client.post('/admin/doctors', {
         full_name: formData.fullName,
@@ -90,11 +100,13 @@ export default function ManageDoctors() {
       })
       fetchData()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to register doctor.')
+      const detail = err.response?.data?.detail
+      setModalError(Array.isArray(detail) ? detail[0]?.msg || 'Invalid doctor input.' : detail || 'Failed to register doctor.')
     }
   }
 
   const openEditModal = (doc) => {
+    setModalError('')
     setEditingDoctor(doc)
     setEditFormData({
       fullName: doc.full_name,
@@ -108,6 +120,7 @@ export default function ManageDoctors() {
   const handleUpdateDoctor = async (e) => {
     e.preventDefault()
     setError('')
+    setModalError('')
     try {
       await client.put(`/admin/doctors/${editingDoctor.id}`, {
         full_name: editFormData.fullName,
@@ -119,7 +132,8 @@ export default function ManageDoctors() {
       setEditingDoctor(null)
       fetchData()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to update doctor details.')
+      const detail = err.response?.data?.detail
+      setModalError(Array.isArray(detail) ? detail[0]?.msg || 'Invalid doctor input.' : detail || 'Failed to update doctor details.')
     }
   }
 
@@ -183,7 +197,10 @@ export default function ManageDoctors() {
             </p>
           </div>
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              setModalError('')
+              setShowAddModal(true)
+            }}
             className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-500/20 transition hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
@@ -311,6 +328,12 @@ export default function ManageDoctors() {
               </div>
 
               <form onSubmit={handleCreateDoctor} className="mt-4 space-y-4">
+                {modalError && (
+                  <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{modalError}</span>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Full Name</label>
                   <input
@@ -382,8 +405,11 @@ export default function ManageDoctors() {
                   <label className="block text-xs font-medium text-slate-700 mb-1">Phone Number</label>
                   <input
                     type="tel"
+                    inputMode="tel"
+                    pattern="^\+?[\d\s\-()]{7,20}$"
+                    title="Enter 7-15 digits (e.g. +40 700 000 000)"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, phone: sanitizePhoneInput(e.target.value) })}
                     placeholder="+40 700 000 000"
                     className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
                   />
@@ -438,6 +464,12 @@ export default function ManageDoctors() {
               </div>
 
               <form onSubmit={handleUpdateDoctor} className="mt-4 space-y-4">
+                {modalError && (
+                  <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{modalError}</span>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Full Name</label>
                   <input
@@ -482,8 +514,11 @@ export default function ManageDoctors() {
                   <label className="block text-xs font-medium text-slate-700 mb-1">Phone Number</label>
                   <input
                     type="tel"
+                    inputMode="tel"
+                    pattern="^\+?[\d\s\-()]{7,20}$"
+                    title="Enter 7-15 digits (e.g. +40 700 000 000)"
                     value={editFormData.phone}
-                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                    onChange={(e) => setEditFormData({ ...editFormData, phone: sanitizePhoneInput(e.target.value) })}
                     className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-600 focus:outline-none"
                   />
                 </div>
@@ -562,25 +597,35 @@ export default function ManageDoctors() {
                 </div>
 
                 <div className="w-28">
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Start Time</label>
-                  <input
-                    type="time"
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Start Time (24h)</label>
+                  <select
                     required
                     value={shiftForm.startTime}
                     onChange={(e) => setShiftForm({ ...shiftForm, startTime: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs bg-white"
-                  />
+                    className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs bg-white font-mono"
+                  >
+                    {HALF_HOUR_OPTIONS.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="w-28">
-                  <label className="block text-xs font-medium text-slate-700 mb-1">End Time</label>
-                  <input
-                    type="time"
+                  <label className="block text-xs font-medium text-slate-700 mb-1">End Time (24h)</label>
+                  <select
                     required
                     value={shiftForm.endTime}
                     onChange={(e) => setShiftForm({ ...shiftForm, endTime: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs bg-white"
-                  />
+                    className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs bg-white font-mono"
+                  >
+                    {HALF_HOUR_OPTIONS.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <button

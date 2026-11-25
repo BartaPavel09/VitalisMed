@@ -206,7 +206,7 @@ def accept_appointment(
     if appt.status != AppointmentStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot accept consultation with status '{appt.status.value}'"
+            detail=f"Cannot accept appointment with status '{appt.status.value}'"
         )
 
     appt.status = AppointmentStatus.ACCEPTED
@@ -248,15 +248,52 @@ def decline_appointment(
     if now > appt_time - timedelta(hours=24):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Consultations cannot be declined less than 24 hours prior to scheduled time"
+            detail="Appointments cannot be declined less than 24 hours prior to scheduled time"
         )
 
     if appt.status in [AppointmentStatus.COMPLETED, AppointmentStatus.CANCELLED]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot decline a consultation that is already completed or cancelled"
+            detail="Cannot decline an appointment that is already completed or cancelled"
         )
 
     appt.status = AppointmentStatus.DECLINED
+    db.commit()
+    return {"id": appt.id, "status": appt.status.value}
+
+
+@router.patch("/appointments/{appointment_id}/complete", response_model=dict)
+def complete_appointment(
+    appointment_id: int,
+    current_user: User = Depends(require_roles([UserRole.DOCTOR])),
+    db: Session = Depends(get_db)
+) -> dict:
+    """
+    Mark an accepted appointment as completed.
+
+    @param appointment_id: Target appointment identifier.
+    @param current_user: Authenticated doctor user.
+    @param db: Database session dependency.
+    @return: Confirmation status payload.
+    """
+    doctor = _get_current_doctor(db, current_user)
+    appt = db.query(Appointment).filter(
+        Appointment.id == appointment_id,
+        Appointment.doctor_id == doctor.id
+    ).first()
+
+    if not appt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Appointment not found"
+        )
+
+    if appt.status != AppointmentStatus.ACCEPTED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot complete appointment with status '{appt.status.value}'. Must be accepted first."
+        )
+
+    appt.status = AppointmentStatus.COMPLETED
     db.commit()
     return {"id": appt.id, "status": appt.status.value}

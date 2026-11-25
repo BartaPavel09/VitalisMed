@@ -7,11 +7,14 @@ from app.models.user import User, UserRole
 from app.models.doctor import Doctor, Specialty
 from app.models.shift import DoctorShift, VacationRequest, VacationStatus, DayOfWeek
 from app.models.appointment import Appointment, AppointmentStatus
+from app.models.rating import Rating
 from app.schemas.admin import SpecialtyResponse
 from app.schemas.patient import (
     PublicDoctorInfo,
     AppointmentCreate,
-    PatientAppointmentResponse
+    PatientAppointmentResponse,
+    RatingCreate,
+    RatingResponse
 )
 
 router = APIRouter(dependencies=[Depends(require_roles([UserRole.PATIENT]))])
@@ -113,6 +116,10 @@ def get_my_appointments(
         diagnosis = a.prescription.diagnosis if has_prescription else None
         medication_instructions = a.prescription.medication_instructions if has_prescription else None
 
+        has_rating = a.rating is not None
+        rating_score = a.rating.score if has_rating else None
+        rating_comment = a.rating.comment if has_rating else None
+
         results.append({
             "id": a.id,
             "doctor_id": a.doctor_id,
@@ -126,7 +133,10 @@ def get_my_appointments(
             "can_cancel": can_cancel,
             "has_prescription": has_prescription,
             "diagnosis": diagnosis,
-            "medication_instructions": medication_instructions
+            "medication_instructions": medication_instructions,
+            "has_rating": has_rating,
+            "rating_score": rating_score,
+            "rating_comment": rating_comment
         })
 
     return results
@@ -230,7 +240,10 @@ def book_appointment(
         "can_cancel": True,
         "has_prescription": False,
         "diagnosis": None,
-        "medication_instructions": None
+        "medication_instructions": None,
+        "has_rating": False,
+        "rating_score": None,
+        "rating_comment": None
     }
 
 
@@ -280,3 +293,56 @@ def cancel_appointment(
     db.commit()
 
     return {"id": appt.id, "status": appt.status.value, "message": "Appointment cancelled successfully"}
+
+
+@router.post("/appointments/{appointment_id}/ratings", response_model=RatingResponse, status_code=status.HTTP_201_CREATED)
+def rate_appointment(
+    appointment_id: int,
+    rating_in: RatingCreate,
+    current_user: User = Depends(require_roles([UserRole.PATIENT])),
+    db: Session = Depends(get_db)
+) -> Rating:
+    """
+    Submit evaluation rating and feedback for a completed appointment.
+
+    @param appointment_id: Target completed appointment identifier.
+    @param rating_in: Rating score and feedback comment payload.
+    @param current_user: Authenticated patient submitting review.
+    @param db: Database session dependency.
+    @return: Newly created rating entry.
+    """
+    appt = db.query(Appointment).filter(
+        Appointment.id == appointment_id,
+        Appointment.patient_id == current_user.id
+    ).first()
+
+    if not appt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Appointment not found"
+        )
+
+    if appt.status != AppointmentStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ratings can only be submitted for completed appointments"
+        )
+
+    existing_rating = db.query(Rating).filter(Rating.appointment_id == appointment_id).first()
+    if existing_rating:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This appointment has already been reviewed"
+        )
+
+    rating = Rating(
+        appointment_id=appt.id,
+        doctor_id=appt.doctor_id,
+        patient_id=current_user.id,
+        score=rating_in.score,
+        comment=rating_in.comment.strip() if rating_in.comment else None
+    )
+    db.add(rating)
+    db.commit()
+    db.refresh(rating)
+    return rating

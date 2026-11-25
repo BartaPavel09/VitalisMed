@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Plus, Clock, FileText, AlertCircle, X, ChevronRight, Stethoscope } from 'lucide-react'
+import { Calendar, Plus, Clock, FileText, AlertCircle, X, ChevronRight, Stethoscope, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import client from '../../api/client'
 
@@ -14,6 +14,11 @@ export default function PatientDashboard() {
   const [error, setError] = useState('')
   const [actionMessage, setActionMessage] = useState('')
   const [viewPrescription, setViewPrescription] = useState(null)
+  const [ratingModalAppt, setRatingModalAppt] = useState(null)
+  const [ratingScore, setRatingScore] = useState(5)
+  const [ratingComment, setRatingComment] = useState('')
+  const [ratingSubmitting, setRatingSubmitting] = useState(false)
+  const [ratingError, setRatingError] = useState('')
 
   useEffect(() => {
     fetchAppointments()
@@ -41,6 +46,33 @@ export default function PatientDashboard() {
       fetchAppointments()
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to cancel appointment.')
+    }
+  }
+
+  const openRatingModal = (appt) => {
+    setRatingModalAppt(appt)
+    setRatingScore(5)
+    setRatingComment('')
+    setRatingError('')
+  }
+
+  const handleRatingSubmit = async (e) => {
+    e.preventDefault()
+    if (!ratingModalAppt) return
+    setRatingSubmitting(true)
+    setRatingError('')
+    try {
+      await client.post(`/patient/appointments/${ratingModalAppt.id}/ratings`, {
+        score: ratingScore,
+        comment: ratingComment ? ratingComment.trim() : null
+      })
+      setRatingModalAppt(null)
+      setActionMessage('Rating submitted successfully. Thank you for your feedback!')
+      fetchAppointments()
+    } catch (err) {
+      setRatingError(err.response?.data?.detail || 'Failed to submit rating.')
+    } finally {
+      setRatingSubmitting(false)
     }
   }
 
@@ -155,6 +187,22 @@ export default function PatientDashboard() {
                             </button>
                           )}
 
+                          {a.status === 'completed' && (
+                            a.has_rating ? (
+                              <div className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                <span>{a.rating_score}/5</span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => openRatingModal(a)}
+                                className="inline-flex items-center gap-1 rounded-lg bg-amber-500 text-white px-3 py-1.5 text-xs font-semibold hover:bg-amber-600 transition shadow-sm shadow-amber-500/20"
+                              >
+                                <Star className="h-3.5 w-3.5" /> Rate Doctor
+                              </button>
+                            )
+                          )}
+
                           {a.can_cancel ? (
                             <button
                               onClick={() => handleCancel(a.id)}
@@ -226,6 +274,99 @@ export default function PatientDashboard() {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Rate Doctor & Submit Feedback */}
+        {ratingModalAppt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Rate Doctor</h3>
+                  <p className="text-xs text-slate-500">
+                    Dr. {ratingModalAppt.doctor_name} • {ratingModalAppt.specialty_name}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setRatingModalAppt(null)}
+                  className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {ratingError && (
+                <div className="mt-4 flex items-center gap-2 rounded-xl bg-rose-50 p-3 text-xs text-rose-700 border border-rose-100">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{ratingError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleRatingSubmit} className="mt-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                    Score
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        type="button"
+                        key={star}
+                        onClick={() => setRatingScore(star)}
+                        className="p-1 rounded-lg hover:bg-slate-50 transition"
+                      >
+                        <Star
+                          className={`h-7 w-7 transition ${
+                            star <= ratingScore
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-slate-300'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    <span className="ml-2 text-sm font-semibold text-slate-700">
+                      {ratingScore} / 5
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                    Feedback & Comments (Optional)
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={ratingComment}
+                    onChange={(e) => setRatingComment(e.target.value)}
+                    placeholder="Share details about your medical appointment experience..."
+                    maxLength={1000}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-sm text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <div className="mt-1 text-right text-[11px] text-slate-400">
+                    {ratingComment.length}/1000 characters
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setRatingModalAppt(null)}
+                    disabled={ratingSubmitting}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={ratingSubmitting}
+                    className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-50 shadow-sm shadow-amber-500/20"
+                  >
+                    {ratingSubmitting ? 'Submitting...' : 'Submit Rating'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

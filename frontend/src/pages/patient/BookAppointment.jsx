@@ -3,6 +3,27 @@ import { Calendar, Clock, Stethoscope, AlertCircle, ArrowLeft, CheckCircle2 } fr
 import { Link, useNavigate } from 'react-router-dom'
 import client from '../../api/client'
 
+const WEEKDAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+
+const getLocalTodayString = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const timeToMinutes = (timeStr) => {
+  const [hours, minutes] = timeStr.slice(0, 5).split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+const minutesToTime = (totalMinutes) => {
+  const hours = String(Math.floor(totalMinutes / 60)).padStart(2, '0')
+  const minutes = String(totalMinutes % 60).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
 /**
  * Appointment booking workflow allowing patients to filter by specialty, review doctor shifts, and schedule visits.
  *
@@ -53,11 +74,15 @@ export default function BookAppointment() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!appointmentTime) {
+      setError('Please select an available 30-minute appointment time slot.')
+      return
+    }
     setError('')
     setSubmitting(true)
 
     try {
-      const combinedDateTime = new Date(`${appointmentDate}T${appointmentTime}:00`).toISOString()
+      const combinedDateTime = `${appointmentDate}T${appointmentTime}:00`
 
       await client.post('/patient/appointments', {
         doctor_id: parseInt(selectedDoctorId, 10),
@@ -77,6 +102,52 @@ export default function BookAppointment() {
   }
 
   const selectedDoctor = doctors.find((d) => d.id === parseInt(selectedDoctorId, 10))
+
+  const getAvailableSlots = () => {
+    if (!selectedDoctor || !appointmentDate) return { slots: [], statusMessage: '' }
+
+    const isOnVacation = (selectedDoctor.vacations || []).some(
+      (v) => appointmentDate >= v.start_date && appointmentDate <= v.end_date
+    )
+    if (isOnVacation) {
+      return { slots: [], statusMessage: 'Doctor is on approved vacation on this date.' }
+    }
+
+    const [year, month, day] = appointmentDate.split('-').map(Number)
+    const weekdayName = WEEKDAY_NAMES[new Date(year, month - 1, day).getDay()]
+    const dayShifts = (selectedDoctor.shifts || []).filter((s) => s.day_of_week === weekdayName)
+
+    if (dayShifts.length === 0) {
+      return {
+        slots: [],
+        statusMessage: `Doctor has no clinical shift hours on ${weekdayName.charAt(0).toUpperCase() + weekdayName.slice(1)}.`
+      }
+    }
+
+    const slotSet = new Set()
+    const todayStr = getLocalTodayString()
+    const now = new Date()
+    const nowMinutes = now.getHours() * 60 + now.getMinutes()
+
+    dayShifts.forEach((shift) => {
+      const startMin = timeToMinutes(shift.start_time)
+      const endMin = timeToMinutes(shift.end_time)
+      for (let m = startMin; m + 30 <= endMin; m += 30) {
+        if (appointmentDate === todayStr && m <= nowMinutes) {
+          continue
+        }
+        slotSet.add(minutesToTime(m))
+      }
+    })
+
+    const slots = Array.from(slotSet).sort()
+    if (slots.length === 0) {
+      return { slots: [], statusMessage: 'No remaining 30-minute time slots available for this date.' }
+    }
+    return { slots, statusMessage: '' }
+  }
+
+  const { slots: availableSlots, statusMessage: slotStatusMessage } = getAvailableSlots()
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-slate-50 py-10">
@@ -141,7 +212,10 @@ export default function BookAppointment() {
                 <select
                   required
                   value={selectedDoctorId}
-                  onChange={(e) => setSelectedDoctorId(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedDoctorId(e.target.value)
+                    setAppointmentTime('')
+                  }}
                   className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-white focus:border-blue-600 focus:outline-none"
                 >
                   <option value="">Select Doctor</option>
@@ -175,7 +249,7 @@ export default function BookAppointment() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
                   3. Appointment Date
@@ -183,24 +257,49 @@ export default function BookAppointment() {
                 <input
                   type="date"
                   required
-                  min={new Date().toISOString().split('T')[0]}
+                  min={getLocalTodayString()}
                   value={appointmentDate}
-                  onChange={(e) => setAppointmentDate(e.target.value)}
+                  onChange={(e) => {
+                    setAppointmentDate(e.target.value)
+                    setAppointmentTime('')
+                  }}
                   className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-white focus:border-blue-600 focus:outline-none"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                  Time Slot
+                  Time Slot (30-min intervals, 24h)
                 </label>
-                <input
-                  type="time"
-                  required
-                  value={appointmentTime}
-                  onChange={(e) => setAppointmentTime(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-white focus:border-blue-600 focus:outline-none"
-                />
+                {!selectedDoctor || !appointmentDate ? (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-500">
+                    Select a doctor and appointment date to view available 30-minute time slots.
+                  </div>
+                ) : availableSlots.length === 0 ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-800">
+                    {slotStatusMessage}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    {availableSlots.map((slot) => {
+                      const isSelected = appointmentTime === slot
+                      return (
+                        <button
+                          key={slot}
+                          type="button"
+                          onClick={() => setAppointmentTime(slot)}
+                          className={`rounded-xl border py-2 text-xs font-mono font-semibold transition ${
+                            isSelected
+                              ? 'border-blue-600 bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                              : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50'
+                          }`}
+                        >
+                          {slot}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 

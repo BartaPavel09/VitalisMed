@@ -1,6 +1,7 @@
 from datetime import time
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from app.models.shift import DayOfWeek
+from app.schemas.validators import validate_phone_number
 
 
 class SpecialtyCreate(BaseModel):
@@ -25,6 +26,11 @@ class DoctorCreate(BaseModel):
     license_number: str
     bio: str | None = None
 
+    @field_validator("phone_number")
+    @classmethod
+    def check_phone_number(cls, v: str | None) -> str | None:
+        return validate_phone_number(v)
+
 
 class DoctorUpdate(BaseModel):
     full_name: str | None = None
@@ -32,6 +38,11 @@ class DoctorUpdate(BaseModel):
     specialty_id: int | None = None
     license_number: str | None = None
     bio: str | None = None
+
+    @field_validator("phone_number")
+    @classmethod
+    def check_phone_number(cls, v: str | None) -> str | None:
+        return validate_phone_number(v)
 
 
 class DoctorResponse(BaseModel):

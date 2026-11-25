@@ -55,6 +55,18 @@ export default function DoctorAppointments() {
     }
   }
 
+  const handleComplete = async (id) => {
+    setError('')
+    setActionSuccess('')
+    try {
+      await client.patch(`/doctor/appointments/${id}/complete`)
+      setActionSuccess('Appointment completed successfully.')
+      fetchAppointments()
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to complete appointment.')
+    }
+  }
+
   const statusBadge = {
     pending: 'bg-amber-50 text-amber-700 border-amber-200',
     accepted: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -189,10 +201,11 @@ export default function DoctorAppointments() {
 
                             {a.status === 'accepted' && (
                               <button
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 transition"
+                                onClick={() => handleComplete(a.id)}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-emerald-500/20 hover:bg-emerald-700 transition"
                               >
-                                <FileText className="h-3.5 w-3.5" />
-                                Complete & Prescription
+                                <Check className="h-3.5 w-3.5" />
+                                Complete Appointment
                               </button>
                             )}
 
