@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Check, X, Calendar, AlertCircle } from 'lucide-react'
 import client from '../../api/client'
+import { formatDate } from '../../utils/dateFormat'
 
 /**
  * Admin portal for reviewing and approving/declining doctor vacation requests.
@@ -50,7 +51,7 @@ export default function VacationApprovals() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-            Doctor Vacation Requests
+            Vacation Requests
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             Review and approve or reject clinical staff leave submissions.
@@ -95,13 +96,13 @@ export default function VacationApprovals() {
                           REQ-#{v.id}
                         </span>
                         <div className="text-xs text-slate-400 mt-0.5">
-                          {new Date(v.created_at).toLocaleDateString()}
+                          {formatDate(v.created_at)}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="inline-flex items-center gap-1.5 font-medium text-slate-800">
                           <Calendar className="h-3.5 w-3.5 text-blue-600" />
-                          {v.start_date} → {v.end_date}
+                          {formatDate(v.start_date)} → {formatDate(v.end_date)}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-600 max-w-sm">

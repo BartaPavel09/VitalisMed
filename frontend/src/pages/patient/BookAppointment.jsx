@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, Clock, Stethoscope, AlertCircle, ArrowLeft, CheckCircle2, ChevronDown } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import client from '../../api/client'
+import { formatTime } from '../../utils/dateFormat'
 
 const WEEKDAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
@@ -252,7 +253,7 @@ export default function BookAppointment() {
                   <div className="flex flex-wrap gap-2">
                     {selectedDoctor.shifts.map((s) => (
                       <span key={s.id} className="rounded-md bg-white border border-blue-200 px-2.5 py-1 text-slate-700 font-mono">
-                        <strong className="capitalize">{s.day_of_week}</strong>: {s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}
+                        <strong className="capitalize">{s.day_of_week}</strong>: {formatTime(s.start_time)} - {formatTime(s.end_time)}
                       </span>
                     ))}
                   </div>
@@ -280,7 +281,7 @@ export default function BookAppointment() {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                  Time Slot (30-min intervals, 24h)
+                  Time Slot (30-min intervals)
                 </label>
                 {!selectedDoctor || !appointmentDate ? (
                   <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-500">
@@ -305,7 +306,7 @@ export default function BookAppointment() {
                               : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50'
                           }`}
                         >
-                          {slot}
+                          {formatTime(slot)}
                         </button>
                       )
                     })}

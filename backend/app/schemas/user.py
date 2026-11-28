@@ -19,6 +19,16 @@ class UserCreate(UserBase):
         return validate_phone_number(v)
 
 
+class UserUpdate(BaseModel):
+    full_name: str | None = None
+    phone_number: str | None = None
+
+    @field_validator("phone_number")
+    @classmethod
+    def check_phone_number(cls, v: str | None) -> str | None:
+        return validate_phone_number(v)
+
+
 class UserResponse(UserBase):
     id: int
     role: UserRole

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, Clock, Star, AlertCircle, Plus, Send, CheckCircle2, XCircle, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import client from '../../api/client'
+import { formatDate, formatTime } from '../../utils/dateFormat'
 
 /**
  * Doctor personal dashboard displaying aggregate rating, weekly shifts, vacation requests, and recent appointments.
@@ -223,7 +224,7 @@ export default function DoctorDashboard() {
                       {s.day_of_week}
                     </span>
                     <span className="font-mono text-xs rounded-md bg-slate-100 px-2.5 py-1 text-slate-700">
-                      {s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}
+                      {formatTime(s.start_time)} - {formatTime(s.end_time)}
                     </span>
                   </div>
                 ))
@@ -256,7 +257,7 @@ export default function DoctorDashboard() {
                   <div key={v.id} className="py-3 flex items-start justify-between gap-4">
                     <div>
                       <div className="text-sm font-semibold text-slate-800">
-                        {v.start_date} → {v.end_date}
+                        {formatDate(v.start_date)} → {formatDate(v.end_date)}
                       </div>
                       {v.reason && (
                         <p className="mt-0.5 text-xs text-slate-500">{v.reason}</p>

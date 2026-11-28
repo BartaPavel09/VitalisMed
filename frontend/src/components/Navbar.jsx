@@ -37,7 +37,10 @@ export default function Navbar() {
         <nav className="flex items-center gap-6">
           {user ? (
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
+              <Link
+                to="/profile"
+                className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 transition hover:border-blue-300 hover:bg-blue-50/50"
+              >
                 <UserIcon className="h-4 w-4 text-slate-500" />
                 <span className="text-sm font-medium text-slate-800">{user.full_name}</span>
                 <span
@@ -47,7 +50,7 @@ export default function Navbar() {
                 >
                   {user.role}
                 </span>
-              </div>
+              </Link>
 
               <button
                 onClick={handleLogout}

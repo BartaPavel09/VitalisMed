@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Plus, UserCheck, UserX, Stethoscope, Mail, Phone, Clock, Trash2, X, Edit3, AlertCircle, ChevronDown } from 'lucide-react'
 import client from '../../api/client'
+import { formatTime } from '../../utils/dateFormat'
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
@@ -43,7 +44,7 @@ function CompactTimePicker({ value, onChange }) {
         onClick={() => setOpen((prev) => !prev)}
         className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-mono text-slate-800 hover:border-blue-500 focus:border-blue-600 focus:outline-none"
       >
-        <span>{value}</span>
+        <span>{formatTime(value)}</span>
         <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
       </button>
 
@@ -64,7 +65,7 @@ function CompactTimePicker({ value, onChange }) {
                     : 'text-slate-700 hover:bg-blue-50 hover:text-blue-700'
                 }`}
               >
-                {slot}
+                {formatTime(slot)}
               </button>
             ))}
           </div>
@@ -702,7 +703,7 @@ export default function ManageDoctors() {
                           {s.day_of_week}
                         </span>
                         <span className="text-xs text-slate-600 font-mono">
-                          {s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)}
+                          {formatTime(s.start_time)} - {formatTime(s.end_time)}
                         </span>
                       </div>
                       <button

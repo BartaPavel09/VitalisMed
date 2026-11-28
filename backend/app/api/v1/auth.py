@@ -5,7 +5,7 @@ from app.core.security import hash_password, verify_password, create_access_toke
 from app.api.deps import get_current_user
 from app.models.user import User, UserRole
 from app.schemas.auth import LoginRequest, Token
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserUpdate, UserResponse
 
 router = APIRouter()
 
@@ -80,4 +80,31 @@ def get_current_user_profile(current_user: User = Depends(get_current_user)) -> 
     @param current_user: Authenticated user retrieved via JWT dependency.
     @return: Current User instance.
     """
+    return current_user
+
+
+@router.put("/me", response_model=UserResponse)
+def update_current_user_profile(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> User:
+    """
+    Update the authenticated user's profile details.
+
+    @param user_update: Profile fields to update.
+    @param current_user: Authenticated user retrieved via JWT dependency.
+    @param db: Database session dependency.
+    @return: Updated User instance.
+    """
+    if user_update.full_name is not None:
+        trimmed_name = user_update.full_name.strip()
+        if trimmed_name:
+            setattr(current_user, "full_name", trimmed_name)
+
+    if user_update.phone_number is not None or "phone_number" in user_update.model_fields_set:
+        setattr(current_user, "phone_number", user_update.phone_number)
+
+    db.commit()
+    db.refresh(current_user)
     return current_user

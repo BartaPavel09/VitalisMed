@@ -354,7 +354,7 @@ def create_shift(shift_in: ShiftCreate, db: Session = Depends(get_db)) -> Doctor
             if not (new_end_min <= s_start_min or new_start_min >= s_end_min):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Shift overlaps with an existing shift on {shift_in.day_of_week.value.capitalize()} ({s.start_time.strftime('%H:%M')} - {s.end_time.strftime('%H:%M')})"
+                    detail=f"Shift overlaps with an existing shift on {shift_in.day_of_week.value.capitalize()}"
                 )
 
         if (s_day_idx + 1) % 7 == new_day_idx:
